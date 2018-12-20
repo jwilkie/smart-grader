@@ -42,9 +42,7 @@ exports.loadFiles = function(files){
 
         // Remove comments from file
         strippedFile = strippedFile.replace(/"/gm, '\'');
-        strippedFile = replaceNotInString(strippedFile, '#.*$', '');
-        strippedFile = replaceNotInString(strippedFile, '\\-\\-.*$', '');
-        strippedFile = replaceNotInString(strippedFile, '\\/\\*(.|\\r|\\n)*?\\*\\/', '');
+        strippedFile = removeComment(strippedFile);
 
         // Remove USE commands
         if(removeUse){
@@ -209,17 +207,16 @@ validators['execute_and_check'] = {
     }
 }
 
-let replaceNotInString = function(text, regexString, replaceText){
-    let regex = new RegExp(`\\\\'|'(?:\\\\'|[^'])*'|(${regexString})`, 'gm');
-    return text.replace(regex, function(match, group0) {
+let removeComment = function(text){
+    return text.replace(/\\'|'(?:\\'|[^'])*'|((#.*$)|(\-\-.*$)|(\/\*(.|\r|\n)*?\*\/))/gm, function(match, group0) {
         if (!group0){
             return match;
         }
         else {
-            return replaceText;
+            return '';
         }
     });
-};
+}
 
 let splitOnChangingDelimiter = function(text){
     let defaultSplitter = ';';
@@ -256,15 +253,30 @@ let splitOnChangingDelimiter = function(text){
 };
 
 let objectContains = function(object, otherObject){
-    for(let property in otherObject){
-        if(!otherObject.hasOwnProperty(property)){
+    for(let otherProperty in otherObject){
+        if(!otherObject.hasOwnProperty(otherProperty)){
             continue;
         }
 
-        if(object[property] === null || 
-           object[property] === undefined || 
-           object[property] !== otherObject[property]){
-            return false;
+        let propertyFound = false;
+        for(let property in object){
+            if(!object.hasOwnProperty(property)){
+                continue;
+            }
+
+            if(otherProperty.toLowerCase() == property.toLowerCase()){
+                propertyFound = true;
+                if(object[property] == otherObject[otherProperty]){
+                    break;
+                }
+                else{
+                    return false;
+                }
+            }
+        }
+
+        if(!propertyFound){
+            return false
         }
     }
 
